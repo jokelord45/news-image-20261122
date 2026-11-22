@@ -38,6 +38,9 @@ def read_jpeg_size(blob):
         if kind in (0xC0, 0xC1, 0xC2):
             height, width = struct.unpack(">HH", blob[pos + 5:pos + 9])
             return width, height
+        if kind == 0xDA:
+            # Start of scan: compressed data follows, no more markers to read.
+            return None
         if kind in (0xD8, 0x01) or 0xD0 <= kind <= 0xD9:
             pos += 2
             continue
@@ -48,6 +51,8 @@ def read_jpeg_size(blob):
 
 def check_image(blob):
     """Raise unless blob is a complete JPEG within the size limits."""
+    if len(blob) < 4:
+        raise SystemExit("image too short to be a JPEG")
     if len(blob) > BYTE_LIMIT:
         raise SystemExit(f"image too large: {len(blob)} bytes")
     if blob[-2:] != b"\xff\xd9":
